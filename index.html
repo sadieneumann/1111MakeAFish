@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
+<meta name="theme-color" content="#0a0a12" />
+<title>11:11 make a fish</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;1,500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     11:11 make a fish  —  rebuild
+     • Rainbow-Fish-style procedural fish, jewel tones, in the ocean
+     • Screenshot layout: framed scene + "11:11 make a fish" + date + location
+     • 11:11 lock (any time zone) with an angry-fairy screen when it's not 11:11
+
+     >>> THE 11:11 LOCK IS OFF by default so you can use it anytime. <<<
+     To turn it on, change  LOCK_ENABLED  to true near the top of the <script>.
+     Handy URL overrides for testing:  ?lock=1  ?lock=0  ?fairy=1
+     ============================================================ */
+
+  :root{
+    --bg:#0a0a12;
+    --ink:#f4f1ef;
+    --muted:#8f8aa0;
+    --frame-edge:rgba(255,255,255,.85);
+    --serif:'Playfair Display', Georgia, 'Times New Roman', serif;
+    --sans:-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    min-height:100dvh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:max(18px, env(safe-area-inset-top)) 18px calc(28px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    user-select:none;
+  }
+
+  /* small flag/eyebrow, echoing your original */
+  .eyebrow{
+    align-self:flex-start;
+    font-size:22px; line-height:1;
+    margin:2px 2px 14px;
+    opacity:.95;
+  }
+
+  .frame{
+    width:100%; max-width:440px;
+    aspect-ratio:1 / 1;
+    border:1.5px solid var(--frame-edge);
+    border-radius:6px;
+    overflow:hidden;
+    position:relative;
+    background:#0b2a44;
+    cursor:pointer;
+  }
+  .frame svg{display:block; width:100%; height:100%;}
+
+  .caption{
+    width:100%; max-width:440px;
+    text-align:center;
+    margin-top:26px;
+  }
+  h1{
+    font-family:var(--serif);
+    font-weight:600;
+    font-size:clamp(34px, 10vw, 46px);
+    letter-spacing:.2px;
+    margin:0;
+    line-height:1.02;
+  }
+  .date{
+    font-family:var(--serif);
+    font-weight:500;
+    font-size:clamp(19px, 5.4vw, 24px);
+    margin:10px 0 0;
+    font-variant-numeric:oldstyle-nums;
+  }
+  .loc{
+    font-family:var(--serif);
+    font-style:italic;
+    font-weight:500;
+    color:#cfc9dc;
+    font-size:clamp(15px, 4.2vw, 18px);
+    margin:6px 0 0;
+    min-height:1.2em;
+  }
+  .hint{
+    font-family:var(--sans);
+    color:var(--muted);
+    font-size:15px;
+    margin:16px 0 0;
+    letter-spacing:.2px;
+  }
+
+  /* ---- fairy (lock) screen ---- */
+  .fairy-wrap{
+    width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; gap:6px; padding:18px;
+    background:
+      radial-gradient(120% 90% at 50% 18%, #3a2a63 0%, #1a1030 55%, #0c0820 100%);
+  }
+  .fairy-wrap svg{width:min(58%, 220px); height:auto;}
+  .fairy-shout{
+    font-family:var(--serif); font-weight:600;
+    font-size:clamp(22px, 7vw, 30px);
+    color:#ffe07a; margin:8px 4px 0; line-height:1.1;
+  }
+  .fairy-sub{font-family:var(--sans); color:#c9b8ff; font-size:14px; margin-top:4px;}
+  .countdown{
+    font-family:var(--serif); font-style:italic;
+    color:#ff7fb0; font-size:16px; margin-top:2px;
+    font-variant-numeric:tabular-nums;
+  }
+
+  /* ---- ambient motion (respect reduced motion) ---- */
+  @keyframes floatUp{
+    from{transform:translateY(10px);}
+    to{transform:translateY(-18px);}
+  }
+  @keyframes sway{
+    0%,100%{transform:rotate(-3deg);}
+    50%{transform:rotate(3deg);}
+  }
+  @keyframes sheenMove{
+    0%{transform:translateX(-260px);}
+    100%{transform:translateX(300px);}
+  }
+  @keyframes hover{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-6px);}
+  }
+  /* fairy flies in from off-screen, then settles */
+  @keyframes flyIn{
+    0%  {transform:translate(-170%, -35%) rotate(-20deg) scale(.65); opacity:0;}
+    55% {transform:translate(9%, 5%) rotate(7deg) scale(1.05); opacity:1;}
+    78% {transform:translate(-3%, -2%) rotate(-3deg) scale(.98);}
+    100%{transform:translate(0,0) rotate(0) scale(1); opacity:1;}
+  }
+  /* wings flutter (relative to their own box) */
+  @keyframes flutter{
+    0%,100%{transform:scaleX(1);}
+    50%{transform:scaleX(.82);}
+  }
+  .bubble{animation:floatUp 5s ease-in-out infinite alternate;}
+  .kelp{transform-origin:bottom center; animation:sway 6s ease-in-out infinite;}
+  .sheen-band{animation:sheenMove 4.5s linear infinite;}
+  .fish-hover{animation:hover 5s ease-in-out infinite;}
+  .fairy-enter{animation:flyIn 1.15s cubic-bezier(.2,.9,.3,1.2) both;}
+  .fairy-hover{transform-origin:center; animation:hover 3.4s ease-in-out infinite;}
+  .wings{transform-box:fill-box; transform-origin:center; animation:flutter .5s ease-in-out infinite;}
+
+  /* ---- "all the fish are taken" fallback ---- */
+  .taken-wrap{
+    width:100%; height:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; gap:4px; padding:20px;
+    background:radial-gradient(120% 90% at 50% 22%, #12507e 0%, #0a2f5a 55%, #06203f 100%);
+  }
+  .taken-wrap svg{width:min(56%, 210px); height:auto;}
+  .taken-shout{font-family:var(--serif); font-weight:600; color:#5EE6D8;
+    font-size:clamp(21px,6.6vw,29px); margin:10px 6px 0; line-height:1.1;}
+  .taken-sub{font-family:var(--sans); color:#9fd7e6; font-size:14px; margin-top:4px;}
+
+  @media (prefers-reduced-motion: reduce){
+    .bubble,.kelp,.sheen-band,.fish-hover,.fairy-hover,.fairy-enter,.wings{animation:none;}
+  }
+</style>
+</head>
+<body>
+  <div class="eyebrow" aria-hidden="true">🐟</div>
+
+  <div class="frame" id="frame" role="img" aria-label="A procedurally generated rainbow fish in the ocean. Tap for a new one.">
+    <!-- scene (fish or fairy) injected here -->
+  </div>
+
+  <div class="caption">
+    <h1>11:11 make a fish</h1>
+    <p class="date" id="date">—</p>
+    <p class="loc" id="loc">locating…</p>
+    <p class="hint" id="hint">tap the fish for a new one</p>
+  </div>
+
+<script>
+/* ======================= CONFIG ======================= */
+const LOCK_ENABLED = true;    // ON: the fish only appears at 11:11 (any time zone); otherwise the fairy guards it
+
+// URL overrides for testing:  ?lock=1  ?lock=0  ?fairy=1  ?taken=1
+const params    = new URLSearchParams(location.search);
+const lockParam = params.get('lock');
+const lockOn    = lockParam === '1' ? true : lockParam === '0' ? false : LOCK_ENABLED;
+const forceFairy = params.get('fairy') === '1';
+const forceTaken = params.get('taken') === '1';
+
+/* ======================= JEWEL PALETTE ======================= */
+const JEWELS = {
+  teal:   {light:'#5EE6D8', base:'#0FB5A6', dark:'#0A7D74'},
+  pink:   {light:'#FF8FBE', base:'#EC3B83', dark:'#B31E5C'},
+  purple: {light:'#C4A7FF', base:'#8B5CF6', dark:'#5B2FB3'},
+  yellow: {light:'#FFE07A', base:'#F5C518', dark:'#C99A00'},
+  blue:   {light:'#7FB0FF', base:'#2E6BE6', dark:'#1B429E'},
+  green:  {light:'#7BEBA0', base:'#22C55E', dark:'#12833C'},
+};
+const JEWEL_KEYS = Object.keys(JEWELS);
+const OUTLINE = '#0c0b16';
+
+/* ======================= RANDOM HELPERS ======================= */
+const rand  = (a,b)=> a + Math.random()*(b-a);
+const randi = (a,b)=> Math.floor(rand(a,b+1));
+const pick  = arr => arr[Math.floor(Math.random()*arr.length)];
+const chance= p => Math.random() < p;
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+/* ======================= FISH GENERATOR =======================
+   Builds an <svg> of one unique fish (in its own coordinate frame),
+   drawn in the Marcus Pfister "Rainbow Fish" spirit:
+   rounded body, tidy scale rows, iridescent shimmer scales with
+   sparkles, big flowing fins, a large friendly eye, and full lips. */
+function buildFish(salt){
+  const s = salt;
+
+  // --- palette choices for this fish ---
+  const cols = shuffle(JEWEL_KEYS).slice(0, randi(3,4)).map(k => JEWELS[k]);
+  const mode = pick(['diagonal','rows','patch']);
+  const shimmerRate = rand(0.20, 0.34);
+
+  const finKey  = pick(JEWEL_KEYS);
+  const fin     = JEWELS[finKey];
+  const lipCol  = pick(['#F5C518','#FF8A4C','#FF6FA3','#FFB347']);
+  const bodyTop = pick(cols), bodyBot = pick(cols);
+
+  // --- body geometry (head/lips at left, tail at right) ---
+  const rx = 138, ry = rand(92, 104);
+  const cx = 0, cy = 0;
+
+  const id = n => `${n}_${s}`;
+  let defs = '';
+
+  // body base gradient
+  defs += `<linearGradient id="${id('body')}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="${bodyTop.light}"/>
+    <stop offset="1" stop-color="${bodyBot.base}"/></linearGradient>`;
+  // shimmer (iridescent foil) gradient
+  defs += `<radialGradient id="${id('shim')}" cx="0.35" cy="0.30" r="0.9">
+    <stop offset="0" stop-color="#ffffff"/>
+    <stop offset="0.35" stop-color="#e9d8ff"/>
+    <stop offset="0.62" stop-color="#c4f4ee"/>
+    <stop offset="0.82" stop-color="#ffd6ec"/>
+    <stop offset="1" stop-color="#bcd4ff"/></radialGradient>`;
+  // fin gradient
+  defs += `<linearGradient id="${id('fin')}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="${fin.light}"/>
+    <stop offset="1" stop-color="${fin.dark}"/></linearGradient>`;
+  // belly shading
+  defs += `<linearGradient id="${id('belly')}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+    <stop offset="1" stop-color="#0a1830" stop-opacity="0.28"/></linearGradient>`;
+  // sheen band (moving highlight)
+  defs += `<linearGradient id="${id('sheen')}" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+    <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.55"/>
+    <stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>`;
+  // body clip for scales + sheen
+  defs += `<clipPath id="${id('clip')}"><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/></clipPath>`;
+
+  // ---------- FINS (behind body) ----------
+  // tail (right)
+  const tailSpread = rand(70, 105);
+  const tail = `
+    <g stroke="${OUTLINE}" stroke-width="4" stroke-linejoin="round">
+      <path d="M ${rx-30},0
+               C ${rx+40},-20 ${rx+120},-${tailSpread} ${rx+150},-${tailSpread*0.6}
+               C ${rx+120},-10 ${rx+120},10 ${rx+150},${tailSpread*0.6}
+               C ${rx+120},${tailSpread} ${rx+40},20 ${rx-30},0 Z"
+            fill="url(#${id('fin')})" opacity="0.95"/>
+      <path d="M ${rx+20},-10 L ${rx+120},-${tailSpread*0.55}
+               M ${rx+22},0 L ${rx+140},0
+               M ${rx+20},10 L ${rx+120},${tailSpread*0.55}"
+            stroke="${OUTLINE}" stroke-width="2.4" opacity="0.35" fill="none"/>
+    </g>`;
+
+  // dorsal (top)
+  const dh = rand(40, 62);
+  const dorsal = `
+    <path d="M ${-40},${-ry+18}
+             C ${-20},${-ry-dh} ${70},${-ry-dh} ${95},${-ry+22}
+             C ${60},${-ry+6} ${0},${-ry+8} ${-40},${-ry+18} Z"
+          fill="url(#${id('fin')})" stroke="${OUTLINE}" stroke-width="4"
+          stroke-linejoin="round" opacity="0.95"/>`;
+
+  // pelvic (bottom, small)
+  const pelvic = `
+    <path d="M ${-20},${ry-16}
+             C ${-30},${ry+34} ${30},${ry+40} ${52},${ry-6}
+             C ${25},${ry+2} ${0},${ry+2} ${-20},${ry-16} Z"
+          fill="url(#${id('fin')})" stroke="${OUTLINE}" stroke-width="4"
+          stroke-linejoin="round" opacity="0.9"/>`;
+
+  // ---------- BODY ----------
+  const body = `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"
+      fill="url(#${id('body')})" stroke="${OUTLINE}" stroke-width="5"/>`;
+
+  // ---------- SCALES ----------
+  const rs = 17;                    // scale radius
+  const stepX = rs * 1.55;
+  const stepY = rs * 1.15;
+  let scales = '';
+  let sparkles = '';
+  let row = 0;
+  for(let y = cy - ry + rs*0.4; y <= cy + ry - rs*0.2; y += stepY, row++){
+    const off = (row % 2) * (stepX/2);
+    let col = 0;
+    for(let x = cx - rx + rs*0.3 + off; x <= cx + rx - rs*0.3; x += stepX, col++){
+      // keep scales inside body a touch (clip handles the rest)
+      const nx=(x-cx)/rx, ny=(y-cy)/ry;
+      if(nx*nx + ny*ny > 1.06) continue;
+
+      let fill, stroke, extraSparkle = false;
+      if(chance(shimmerRate)){
+        fill = `url(#${id('shim')})`; stroke = '#e7ddff';
+        extraSparkle = chance(0.55);
+      }else{
+        let c;
+        if(mode==='diagonal') c = cols[(row+col)%cols.length];
+        else if(mode==='rows') c = cols[row%cols.length];
+        else c = pick(cols);
+        fill = chance(0.30) ? c.light : c.base;
+        stroke = c.dark;
+      }
+      // dome-shaped scale (curved edge facing the head/left)
+      scales += `<path d="M ${x+rs},${y} A ${rs},${rs} 0 0 1 ${x-rs},${y} L ${x-rs*0.55},${y+rs*0.7} A ${rs*0.9},${rs*0.9} 0 0 0 ${x+rs*0.55},${y+rs*0.7} Z"
+        fill="${fill}" stroke="${stroke}" stroke-width="1.4" stroke-opacity="0.7"/>`;
+      if(extraSparkle){
+        const sx = x - rs*0.2, sy = y - rs*0.1, r = rs*0.42;
+        sparkles += `<path d="M ${sx},${sy-r} L ${sx+r*0.28},${sy-r*0.28} L ${sx+r},${sy}
+          L ${sx+r*0.28},${sy+r*0.28} L ${sx},${sy+r} L ${sx-r*0.28},${sy+r*0.28}
+          L ${sx-r},${sy} L ${sx-r*0.28},${sy-r*0.28} Z" fill="#ffffff" opacity="0.92"/>`;
+      }
+    }
+  }
+
+  // ---------- PECTORAL FIN (front, translucent) ----------
+  const pectoral = `
+    <g clip-path="none">
+      <path d="M ${-70},${10}
+               C ${-95},${60} ${-55},${92} ${-8},${78}
+               C ${-30},${58} ${-40},${34} ${-50},${16}
+               C ${-56},${12} ${-64},${8} ${-70},${10} Z"
+            fill="url(#${id('fin')})" stroke="${OUTLINE}" stroke-width="4"
+            stroke-linejoin="round" opacity="0.82"/>
+      <path d="M ${-64},${20} L ${-30},${74}
+               M ${-52},${20} L ${-16},${72}" stroke="${OUTLINE}" stroke-width="2"
+            opacity="0.28" fill="none"/>
+    </g>`;
+
+  // ---------- LIPS (front-left) ----------
+  const lips = `
+    <g stroke="${OUTLINE}" stroke-width="4" stroke-linejoin="round">
+      <path d="M ${-rx+8},${-14}
+               C ${-rx-26},${-16} ${-rx-30},${6} ${-rx-6},${8}
+               C ${-rx+4},${2} ${-rx+6},${-6} ${-rx+8},${-14} Z"
+            fill="${lipCol}"/>
+      <path d="M ${-rx+8},${14}
+               C ${-rx-24},${18} ${-rx-24},${34} ${-rx-2},${30}
+               C ${-rx+6},${24} ${-rx+8},${18} ${-rx+8},${14} Z"
+            fill="${lipCol}" opacity="0.92"/>
+    </g>`;
+
+  // ---------- EYE ----------
+  const ex = -74, ey = -34, er = 16;
+  const eye = `
+    <g>
+      <circle cx="${ex}" cy="${ey}" r="${er}" fill="#ffffff" stroke="${OUTLINE}" stroke-width="3.5"/>
+      <circle cx="${ex+3}" cy="${ey+1}" r="${er*0.55}" fill="${OUTLINE}"/>
+      <circle cx="${ex-2}" cy="${ey-4}" r="${er*0.22}" fill="#ffffff"/>
+    </g>`;
+
+  // ---------- SHEEN (animated highlight over the body) ----------
+  const sheen = `
+    <g clip-path="url(#${id('clip')})">
+      <rect class="sheen-band" x="${cx-70}" y="${cy-ry}" width="55" height="${ry*2}"
+            fill="url(#${id('sheen')})" transform="skewX(-16)"/>
+    </g>`;
+
+  // assemble in fish-local coordinates
+  const inner = `
+    <defs>${defs}</defs>
+    ${tail}
+    ${dorsal}
+    ${pelvic}
+    ${body}
+    <g clip-path="url(#${id('clip')})">
+      ${scales}
+      ${sparkles}
+      <ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="url(#${id('belly')})"/>
+    </g>
+    ${sheen}
+    ${pectoral}
+    ${lips}
+    ${eye}`;
+
+  // always face the same way (head to the left) so tapping never flips it
+  return `<g class="fish-hover">${inner}</g>`;
+}
+
+/* ======================= OCEAN SCENE ======================= */
+function buildOcean(){
+  const salt = Math.random().toString(36).slice(2,7);
+  const W = 440, H = 440;
+
+  const oceanDefs = `
+    <linearGradient id="ocean_${salt}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#39b6dd"/>
+      <stop offset="0.45" stop-color="#1f78b4"/>
+      <stop offset="1" stop-color="#0a2f5a"/>
+    </linearGradient>
+    <linearGradient id="ray_${salt}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="bub_${salt}" cx="0.35" cy="0.3" r="0.7">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.7" stop-color="#dff5ff" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.05"/>
+    </radialGradient>`;
+
+  // light rays
+  let rays = '';
+  for(let i=0;i<4;i++){
+    const x = rand(40, W-40), w = rand(28, 56), skew = rand(-14,14);
+    rays += `<polygon points="${x},0 ${x+w},0 ${x+w+skew+40},${H} ${x+skew},${H}"
+      fill="url(#ray_${salt})" opacity="${rand(0.25,0.5).toFixed(2)}"/>`;
+  }
+
+  // kelp at the bottom
+  const kelpCols = ['#0e8f5a','#0aa06a','#12b37a','#0b7d6b'];
+  let kelp = '';
+  const kelpXs = [24, 68, W-40, W-84, W/2+30];
+  kelpXs.forEach((kx,i)=>{
+    const h = rand(120,190), c = pick(kelpCols), lean = rand(-18,18), delay=(i*0.7).toFixed(2);
+    kelp += `<g class="kelp" style="animation-delay:${delay}s">
+      <path d="M ${kx},${H}
+               C ${kx-26},${H-h*0.35} ${kx+26+lean},${H-h*0.7} ${kx+lean},${H-h}
+               C ${kx+40+lean},${H-h*0.7} ${kx+8},${H-h*0.35} ${kx+14},${H}"
+            fill="${c}" opacity="0.9" stroke="#063a2b" stroke-width="2"/></g>`;
+  });
+
+  // bubbles
+  let bubbles = '';
+  for(let i=0;i<9;i++){
+    const bx=rand(20,W-20), by=rand(30,H-40), r=rand(3,9), d=(rand(0,4)).toFixed(2);
+    bubbles += `<circle class="bubble" cx="${bx}" cy="${by}" r="${r}"
+      fill="url(#bub_${salt})" style="animation-delay:${d}s"/>`;
+  }
+
+  const fish = buildFish(salt);
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs>${oceanDefs}</defs>
+    <rect width="${W}" height="${H}" fill="url(#ocean_${salt})"/>
+    ${rays}
+    ${kelp}
+    <g transform="translate(${W/2-4}, ${H/2-6}) scale(0.82)">${fish}</g>
+    ${bubbles}
+  </svg>`;
+}
+
+/* ======================= ANGRY FAIRY (lock screen) ======================= */
+function buildFairy(){
+  return `<div class="fairy-wrap">
+    <div class="fairy-enter">
+    <svg class="fairy-hover" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="wing" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#C4A7FF"/><stop offset="1" stop-color="#5EE6D8"/>
+        </linearGradient>
+        <linearGradient id="dress" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FF8FBE"/><stop offset="1" stop-color="#EC3B83"/>
+        </linearGradient>
+      </defs>
+      <!-- wings -->
+      <g class="wings" opacity="0.92" stroke="#3a2a63" stroke-width="2">
+        <path d="M100,120 C40,60 40,150 100,140 Z" fill="url(#wing)"/>
+        <path d="M100,120 C160,60 160,150 100,140 Z" fill="url(#wing)"/>
+        <path d="M100,130 C55,120 55,185 100,150 Z" fill="url(#wing)" opacity="0.8"/>
+        <path d="M100,130 C145,120 145,185 100,150 Z" fill="url(#wing)" opacity="0.8"/>
+      </g>
+      <!-- body/dress -->
+      <path d="M84,120 L116,120 L128,190 L72,190 Z" fill="url(#dress)" stroke="#3a2a63" stroke-width="2"/>
+      <!-- arms on hips (annoyed) -->
+      <path d="M84,132 C64,138 66,158 82,160" fill="none" stroke="#F7C9A0" stroke-width="7" stroke-linecap="round"/>
+      <path d="M116,132 C136,138 134,158 118,160" fill="none" stroke="#F7C9A0" stroke-width="7" stroke-linecap="round"/>
+      <!-- head -->
+      <circle cx="100" cy="92" r="30" fill="#F7C9A0" stroke="#3a2a63" stroke-width="2"/>
+      <!-- hair -->
+      <path d="M70,88 C66,58 134,58 130,88 C122,74 78,74 70,88 Z" fill="#8B5CF6"/>
+      <!-- angry brows -->
+      <path d="M82,84 L96,90" stroke="#3a2a63" stroke-width="4" stroke-linecap="round"/>
+      <path d="M118,84 L104,90" stroke="#3a2a63" stroke-width="4" stroke-linecap="round"/>
+      <!-- eyes -->
+      <circle cx="90" cy="96" r="4" fill="#3a2a63"/>
+      <circle cx="110" cy="96" r="4" fill="#3a2a63"/>
+      <!-- frown -->
+      <path d="M90,110 C100,103 100,103 110,110" fill="none" stroke="#B31E5C" stroke-width="3" stroke-linecap="round"/>
+      <!-- wand -->
+      <line x1="118" y1="150" x2="150" y2="120" stroke="#C99A00" stroke-width="4" stroke-linecap="round"/>
+      <path d="M150,110 l4,9 10,1 -7,7 2,10 -9,-5 -9,5 2,-10 -7,-7 10,-1 Z" fill="#F5C518" stroke="#3a2a63" stroke-width="1.5"/>
+    </svg>
+    </div>
+    <div class="fairy-shout">Come back at 11:11!</div>
+    <div class="fairy-sub">the fish only appears then</div>
+    <div class="countdown" id="countdown">—</div>
+  </div>`;
+}
+
+/* ======================= "ALL THE FISH ARE TAKEN" (fallback) =======================
+   Shows if a fish ever fails to build, or via ?taken=1 to preview it. */
+function buildAllTaken(){
+  return `<div class="taken-wrap">
+    <div class="fairy-enter">
+    <svg viewBox="0 0 200 190" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bowl" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#7FB0FF" stop-opacity="0.5"/>
+          <stop offset="1" stop-color="#2E6BE6" stop-opacity="0.65"/>
+        </linearGradient>
+      </defs>
+      <!-- empty fishbowl -->
+      <ellipse cx="100" cy="170" rx="52" ry="10" fill="#0a2f5a"/>
+      <path d="M55,95 C55,140 145,140 145,95 C150,80 150,70 138,62
+               C150,58 150,44 138,42 L62,42 C50,44 50,58 62,62
+               C50,70 50,80 55,95 Z" fill="url(#bowl)" stroke="#bfe0ff" stroke-width="2.5"/>
+      <!-- water line + a lonely bubble -->
+      <path d="M58,88 C80,96 120,96 142,88" fill="none" stroke="#dff2ff" stroke-width="2" opacity="0.6"/>
+      <circle cx="112" cy="110" r="4" fill="#ffffff" opacity="0.8"/>
+      <circle cx="92" cy="124" r="2.5" fill="#ffffff" opacity="0.6"/>
+      <!-- SOLD OUT tag on a string -->
+      <line x1="100" y1="42" x2="100" y2="20" stroke="#ffe07a" stroke-width="2"/>
+      <g transform="rotate(-8 100 12)">
+        <rect x="66" y="2" width="68" height="26" rx="5" fill="#F5C518" stroke="#3a2a63" stroke-width="2"/>
+        <circle cx="72" cy="15" r="3" fill="#0a2f5a"/>
+        <text x="102" y="20" text-anchor="middle" font-family="Georgia, serif"
+              font-size="13" font-weight="700" fill="#3a2a63">SOLD OUT</text>
+      </g>
+    </svg>
+    </div>
+    <div class="taken-shout">all the fish are taken!</div>
+    <div class="taken-sub">every last one — swim back at the next 11:11 🎣</div>
+  </div>`;
+}
+
+/* ======================= TIME + STATE ======================= */
+const frame = document.getElementById('frame');
+const hintEl = document.getElementById('hint');
+
+function isElevenEleven(d = new Date()){
+  const h = d.getHours(), m = d.getMinutes();
+  return (h === 11 || h === 23) && m === 11;   // 11:11 AM or 11:11 PM, in the device's own time zone
+}
+
+function nextEleven(){
+  const now = new Date();
+  const opts = [];
+  for(const hh of [11,23]){
+    const t = new Date(now);
+    t.setHours(hh,11,0,0);
+    if(t <= now) t.setDate(t.getDate()+1);
+    opts.push(t);
+  }
+  return new Date(Math.min(...opts.map(t=>t.getTime())));
+}
+
+function fmtCountdown(){
+  const ms = nextEleven() - new Date();
+  const s = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return `next 11:11 in ${h}h ${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
+}
+
+let showingFairy = null;
+
+// draw a fresh fish; if anything goes wrong, the fish are "taken"
+function drawFish(){
+  try{
+    frame.innerHTML = buildOcean();
+  }catch(e){
+    frame.innerHTML = buildAllTaken();
+  }
+}
+
+function render(){
+  const fairyNow = forceFairy || (lockOn && !isElevenEleven());
+  if(forceTaken){                     // preview the fallback screen
+    if(showingFairy !== 'taken'){ showingFairy = 'taken'; frame.innerHTML = buildAllTaken();
+      frame.style.cursor='default'; hintEl.textContent='sold out for now'; }
+    return;
+  }
+  if(fairyNow === showingFairy) return;   // no unnecessary re-render
+  showingFairy = fairyNow;
+  if(fairyNow){
+    frame.innerHTML = buildFairy();
+    frame.style.cursor = 'default';
+    hintEl.textContent = 'the fairy is guarding the fish';
+  }else{
+    drawFish();
+    frame.style.cursor = 'pointer';
+    hintEl.textContent = 'tap the fish for a new one';
+  }
+}
+
+function newFish(){
+  if(showingFairy) return;
+  drawFish();
+}
+
+/* tap for a new fish */
+frame.addEventListener('click', newFish);
+
+/* re-check the clock the moment you return to the tab, so it flips to
+   the fish right at 11:11 even if the phone was asleep */
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
+window.addEventListener('focus', render);
+
+/* ======================= DATE + LOCATION ======================= */
+document.getElementById('date').textContent =
+  new Date().toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+const locEl = document.getElementById('loc');
+
+// full state name -> abbreviation (fallback when no ISO code is returned)
+const US_STATES = {Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',
+Colorado:'CO',Connecticut:'CT',Delaware:'DE','District of Columbia':'DC',Florida:'FL',
+Georgia:'GA',Hawaii:'HI',Idaho:'ID',Illinois:'IL',Indiana:'IN',Iowa:'IA',Kansas:'KS',
+Kentucky:'KY',Louisiana:'LA',Maine:'ME',Maryland:'MD',Massachusetts:'MA',Michigan:'MI',
+Minnesota:'MN',Mississippi:'MS',Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:'NV',
+'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY','North Carolina':'NC',
+'North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA','Rhode Island':'RI',
+'South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',Texas:'TX',Utah:'UT',Vermont:'VT',
+Virginia:'VA',Washington:'WA','West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY'};
+
+// turn "US-CA" or "California" into "CA"
+function abbr(code, name){
+  if(code){ const last = String(code).split('-').pop(); if(/^[A-Za-z]{2}$/.test(last)) return last.toUpperCase(); }
+  if(name && US_STATES[name]) return US_STATES[name];
+  return name || '';
+}
+
+// If there's no city/town, use the STATE alone — never the time-zone city.
+function formatPlace(city, state, country){
+  if(city && state) return `${city}, ${state}`;
+  if(city)  return city;
+  if(state) return state;
+  if(country) return country;
+  return '';
+}
+
+// GPS -> a town-level place. OpenStreetMap first (best for small towns like Ross),
+// BigDataCloud as backup. State is shown abbreviated.
+async function reverseGeocode(lat, lon){
+  try{
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=12&addressdetails=1`);
+    if(r.ok){
+      const a = (await r.json()).address || {};
+      const city = a.city||a.town||a.village||a.hamlet||a.municipality||a.suburb||a.county||'';
+      const label = formatPlace(city, abbr(a['ISO3166-2-lvl4'], a.state), a.country);
+      if(label) return label;
+    }
+  }catch{}
+  try{
+    const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+    const j = await r.json();
+    const city = j.city||j.locality||'';
+    const label = formatPlace(city, abbr(j.principalSubdivisionCode, j.principalSubdivision), j.countryName);
+    if(label) return label;
+  }catch{}
+  return '';
+}
+
+// No GPS -> approximate from IP (city if offered, otherwise state).
+async function ipPlace(){
+  try{
+    const r = await fetch('https://ipapi.co/json/');
+    const j = await r.json();
+    return formatPlace(j.city, abbr(j.region_code, j.region), j.country_name);
+  }catch{ return ''; }
+}
+
+function setLocation(){
+  if(!navigator.geolocation){ ipPlace().then(t=> locEl.textContent = t); return; }
+  navigator.geolocation.getCurrentPosition(
+    async pos=>{
+      const {latitude:lat, longitude:lon} = pos.coords;
+      const label = await reverseGeocode(lat, lon);
+      locEl.textContent = label || `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+    },
+    async ()=>{ locEl.textContent = await ipPlace(); },
+    {enableHighAccuracy:true, timeout:9000, maximumAge:600000}
+  );
+}
+setLocation();
+
+/* ======================= LIVE TICK ======================= */
+render();
+setInterval(()=>{
+  render();
+  const cd = document.getElementById('countdown');
+  if(cd) cd.textContent = fmtCountdown();
+}, 1000);
+</script>
+</body>
+</html>
