@@ -14,12 +14,12 @@
      • Rainbow-Fish-style procedural fish, jewel tones, in the ocean
      • Screenshot layout: framed scene + "11:11 make a fish" + date + location
      • 11:11 lock (any time zone) with an angry-fairy screen when it's not 11:11
-
+ 
      >>> THE 11:11 LOCK IS OFF by default so you can use it anytime. <<<
      To turn it on, change  LOCK_ENABLED  to true near the top of the <script>.
      Handy URL overrides for testing:  ?lock=1  ?lock=0  ?fairy=1
      ============================================================ */
-
+ 
   :root{
     --bg:#0a0a12;
     --ink:#f4f1ef;
@@ -41,7 +41,7 @@
     overflow-x:hidden;
     user-select:none;
   }
-
+ 
   /* small flag/eyebrow, echoing your original */
   .eyebrow{
     align-self:flex-start;
@@ -49,7 +49,7 @@
     margin:2px 2px 14px;
     opacity:.95;
   }
-
+ 
   .frame{
     width:100%; max-width:440px;
     aspect-ratio:1 / 1;
@@ -61,7 +61,7 @@
     cursor:pointer;
   }
   .frame svg{display:block; width:100%; height:100%;}
-
+ 
   .caption{
     width:100%; max-width:440px;
     text-align:center;
@@ -98,7 +98,7 @@
     margin:16px 0 0;
     letter-spacing:.2px;
   }
-
+ 
   /* ---- fairy (lock) screen ---- */
   .fairy-wrap{
     width:100%; height:100%;
@@ -119,7 +119,7 @@
     color:#ff7fb0; font-size:16px; margin-top:2px;
     font-variant-numeric:tabular-nums;
   }
-
+ 
   /* ---- ambient motion (respect reduced motion) ---- */
   @keyframes floatUp{
     from{transform:translateY(10px);}
@@ -156,7 +156,7 @@
   .fairy-enter{animation:flyIn 1.15s cubic-bezier(.2,.9,.3,1.2) both;}
   .fairy-hover{transform-origin:center; animation:hover 3.4s ease-in-out infinite;}
   .wings{transform-box:fill-box; transform-origin:center; animation:flutter .5s ease-in-out infinite;}
-
+ 
   /* ---- "all the fish are taken" fallback ---- */
   .taken-wrap{
     width:100%; height:100%;
@@ -168,7 +168,7 @@
   .taken-shout{font-family:var(--serif); font-weight:600; color:#5EE6D8;
     font-size:clamp(21px,6.6vw,29px); margin:10px 6px 0; line-height:1.1;}
   .taken-sub{font-family:var(--sans); color:#9fd7e6; font-size:14px; margin-top:4px;}
-
+ 
   @media (prefers-reduced-motion: reduce){
     .bubble,.kelp,.sheen-band,.fish-hover,.fairy-hover,.fairy-enter,.wings{animation:none;}
   }
@@ -176,29 +176,29 @@
 </head>
 <body>
   <div class="eyebrow" aria-hidden="true">🐟</div>
-
+ 
   <div class="frame" id="frame" role="img" aria-label="A procedurally generated rainbow fish in the ocean. Tap for a new one.">
     <!-- scene (fish or fairy) injected here -->
   </div>
-
+ 
   <div class="caption">
     <h1>11:11 make a fish</h1>
     <p class="date" id="date">—</p>
     <p class="loc" id="loc">locating…</p>
     <p class="hint" id="hint">tap the fish for a new one</p>
   </div>
-
+ 
 <script>
 /* ======================= CONFIG ======================= */
 const LOCK_ENABLED = true;    // ON: the fish only appears at 11:11 (any time zone); otherwise the fairy guards it
-
+ 
 // URL overrides for testing:  ?lock=1  ?lock=0  ?fairy=1  ?taken=1
 const params    = new URLSearchParams(location.search);
 const lockParam = params.get('lock');
 const lockOn    = lockParam === '1' ? true : lockParam === '0' ? false : LOCK_ENABLED;
 const forceFairy = params.get('fairy') === '1';
 const forceTaken = params.get('taken') === '1';
-
+ 
 /* ======================= JEWEL PALETTE ======================= */
 const JEWELS = {
   teal:   {light:'#5EE6D8', base:'#0FB5A6', dark:'#0A7D74'},
@@ -210,7 +210,7 @@ const JEWELS = {
 };
 const JEWEL_KEYS = Object.keys(JEWELS);
 const OUTLINE = '#0c0b16';
-
+ 
 /* ======================= RANDOM HELPERS ======================= */
 const rand  = (a,b)=> a + Math.random()*(b-a);
 const randi = (a,b)=> Math.floor(rand(a,b+1));
@@ -221,7 +221,7 @@ function shuffle(arr){
   for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
   return a;
 }
-
+ 
 /* ======================= FISH GENERATOR =======================
    Builds an <svg> of one unique fish (in its own coordinate frame),
    drawn in the Marcus Pfister "Rainbow Fish" spirit:
@@ -229,24 +229,24 @@ function shuffle(arr){
    sparkles, big flowing fins, a large friendly eye, and full lips. */
 function buildFish(salt){
   const s = salt;
-
+ 
   // --- palette choices for this fish ---
   const cols = shuffle(JEWEL_KEYS).slice(0, randi(3,4)).map(k => JEWELS[k]);
   const mode = pick(['diagonal','rows','patch']);
   const shimmerRate = rand(0.20, 0.34);
-
+ 
   const finKey  = pick(JEWEL_KEYS);
   const fin     = JEWELS[finKey];
   const lipCol  = pick(['#F5C518','#FF8A4C','#FF6FA3','#FFB347']);
   const bodyTop = pick(cols), bodyBot = pick(cols);
-
+ 
   // --- body geometry (head/lips at left, tail at right) ---
   const rx = 138, ry = rand(92, 104);
   const cx = 0, cy = 0;
-
+ 
   const id = n => `${n}_${s}`;
   let defs = '';
-
+ 
   // body base gradient
   defs += `<linearGradient id="${id('body')}" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="${bodyTop.light}"/>
@@ -273,7 +273,7 @@ function buildFish(salt){
     <stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>`;
   // body clip for scales + sheen
   defs += `<clipPath id="${id('clip')}"><ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/></clipPath>`;
-
+ 
   // ---------- FINS (behind body) ----------
   // tail (right)
   const tailSpread = rand(70, 105);
@@ -289,7 +289,7 @@ function buildFish(salt){
                M ${rx+20},10 L ${rx+120},${tailSpread*0.55}"
             stroke="${OUTLINE}" stroke-width="2.4" opacity="0.35" fill="none"/>
     </g>`;
-
+ 
   // dorsal (top)
   const dh = rand(40, 62);
   const dorsal = `
@@ -298,7 +298,7 @@ function buildFish(salt){
              C ${60},${-ry+6} ${0},${-ry+8} ${-40},${-ry+18} Z"
           fill="url(#${id('fin')})" stroke="${OUTLINE}" stroke-width="4"
           stroke-linejoin="round" opacity="0.95"/>`;
-
+ 
   // pelvic (bottom, small)
   const pelvic = `
     <path d="M ${-20},${ry-16}
@@ -306,11 +306,11 @@ function buildFish(salt){
              C ${25},${ry+2} ${0},${ry+2} ${-20},${ry-16} Z"
           fill="url(#${id('fin')})" stroke="${OUTLINE}" stroke-width="4"
           stroke-linejoin="round" opacity="0.9"/>`;
-
+ 
   // ---------- BODY ----------
   const body = `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"
       fill="url(#${id('body')})" stroke="${OUTLINE}" stroke-width="5"/>`;
-
+ 
   // ---------- SCALES ----------
   const rs = 17;                    // scale radius
   const stepX = rs * 1.55;
@@ -325,7 +325,7 @@ function buildFish(salt){
       // keep scales inside body a touch (clip handles the rest)
       const nx=(x-cx)/rx, ny=(y-cy)/ry;
       if(nx*nx + ny*ny > 1.06) continue;
-
+ 
       let fill, stroke, extraSparkle = false;
       if(chance(shimmerRate)){
         fill = `url(#${id('shim')})`; stroke = '#e7ddff';
@@ -349,7 +349,7 @@ function buildFish(salt){
       }
     }
   }
-
+ 
   // ---------- PECTORAL FIN (front, translucent) ----------
   const pectoral = `
     <g clip-path="none">
@@ -363,7 +363,7 @@ function buildFish(salt){
                M ${-52},${20} L ${-16},${72}" stroke="${OUTLINE}" stroke-width="2"
             opacity="0.28" fill="none"/>
     </g>`;
-
+ 
   // ---------- LIPS (front-left) ----------
   const lips = `
     <g stroke="${OUTLINE}" stroke-width="4" stroke-linejoin="round">
@@ -376,7 +376,7 @@ function buildFish(salt){
                C ${-rx+6},${24} ${-rx+8},${18} ${-rx+8},${14} Z"
             fill="${lipCol}" opacity="0.92"/>
     </g>`;
-
+ 
   // ---------- EYE ----------
   const ex = -74, ey = -34, er = 16;
   const eye = `
@@ -385,14 +385,14 @@ function buildFish(salt){
       <circle cx="${ex+3}" cy="${ey+1}" r="${er*0.55}" fill="${OUTLINE}"/>
       <circle cx="${ex-2}" cy="${ey-4}" r="${er*0.22}" fill="#ffffff"/>
     </g>`;
-
+ 
   // ---------- SHEEN (animated highlight over the body) ----------
   const sheen = `
     <g clip-path="url(#${id('clip')})">
       <rect class="sheen-band" x="${cx-70}" y="${cy-ry}" width="55" height="${ry*2}"
             fill="url(#${id('sheen')})" transform="skewX(-16)"/>
     </g>`;
-
+ 
   // assemble in fish-local coordinates
   const inner = `
     <defs>${defs}</defs>
@@ -409,16 +409,16 @@ function buildFish(salt){
     ${pectoral}
     ${lips}
     ${eye}`;
-
+ 
   // always face the same way (head to the left) so tapping never flips it
   return `<g class="fish-hover">${inner}</g>`;
 }
-
+ 
 /* ======================= OCEAN SCENE ======================= */
 function buildOcean(){
   const salt = Math.random().toString(36).slice(2,7);
   const W = 440, H = 440;
-
+ 
   const oceanDefs = `
     <linearGradient id="ocean_${salt}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#39b6dd"/>
@@ -434,7 +434,7 @@ function buildOcean(){
       <stop offset="0.7" stop-color="#dff5ff" stop-opacity="0.15"/>
       <stop offset="1" stop-color="#ffffff" stop-opacity="0.05"/>
     </radialGradient>`;
-
+ 
   // light rays
   let rays = '';
   for(let i=0;i<4;i++){
@@ -442,7 +442,7 @@ function buildOcean(){
     rays += `<polygon points="${x},0 ${x+w},0 ${x+w+skew+40},${H} ${x+skew},${H}"
       fill="url(#ray_${salt})" opacity="${rand(0.25,0.5).toFixed(2)}"/>`;
   }
-
+ 
   // kelp at the bottom
   const kelpCols = ['#0e8f5a','#0aa06a','#12b37a','#0b7d6b'];
   let kelp = '';
@@ -455,7 +455,7 @@ function buildOcean(){
                C ${kx+40+lean},${H-h*0.7} ${kx+8},${H-h*0.35} ${kx+14},${H}"
             fill="${c}" opacity="0.9" stroke="#063a2b" stroke-width="2"/></g>`;
   });
-
+ 
   // bubbles
   let bubbles = '';
   for(let i=0;i<9;i++){
@@ -463,9 +463,9 @@ function buildOcean(){
     bubbles += `<circle class="bubble" cx="${bx}" cy="${by}" r="${r}"
       fill="url(#bub_${salt})" style="animation-delay:${d}s"/>`;
   }
-
+ 
   const fish = buildFish(salt);
-
+ 
   return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
     <defs>${oceanDefs}</defs>
     <rect width="${W}" height="${H}" fill="url(#ocean_${salt})"/>
@@ -475,7 +475,7 @@ function buildOcean(){
     ${bubbles}
   </svg>`;
 }
-
+ 
 /* ======================= ANGRY FAIRY (lock screen) ======================= */
 function buildFairy(){
   return `<div class="fairy-wrap">
@@ -523,7 +523,7 @@ function buildFairy(){
     <div class="countdown" id="countdown">—</div>
   </div>`;
 }
-
+ 
 /* ======================= "ALL THE FISH ARE TAKEN" (fallback) =======================
    Shows if a fish ever fails to build, or via ?taken=1 to preview it. */
 function buildAllTaken(){
@@ -559,16 +559,16 @@ function buildAllTaken(){
     <div class="taken-sub">every last one — swim back at the next 11:11 🎣</div>
   </div>`;
 }
-
+ 
 /* ======================= TIME + STATE ======================= */
 const frame = document.getElementById('frame');
 const hintEl = document.getElementById('hint');
-
+ 
 function isElevenEleven(d = new Date()){
   const h = d.getHours(), m = d.getMinutes();
   return (h === 11 || h === 23) && m === 11;   // 11:11 AM or 11:11 PM, in the device's own time zone
 }
-
+ 
 function nextEleven(){
   const now = new Date();
   const opts = [];
@@ -580,16 +580,16 @@ function nextEleven(){
   }
   return new Date(Math.min(...opts.map(t=>t.getTime())));
 }
-
+ 
 function fmtCountdown(){
   const ms = nextEleven() - new Date();
   const s = Math.max(0, Math.floor(ms/1000));
   const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
   return `next 11:11 in ${h}h ${String(m).padStart(2,'0')}m ${String(sec).padStart(2,'0')}s`;
 }
-
+ 
 let showingFairy = null;
-
+ 
 // draw a fresh fish; if anything goes wrong, the fish are "taken"
 function drawFish(){
   try{
@@ -598,7 +598,7 @@ function drawFish(){
     frame.innerHTML = buildAllTaken();
   }
 }
-
+ 
 function render(){
   const fairyNow = forceFairy || (lockOn && !isElevenEleven());
   if(forceTaken){                     // preview the fallback screen
@@ -615,29 +615,31 @@ function render(){
   }else{
     drawFish();
     frame.style.cursor = 'pointer';
-    hintEl.textContent = 'tap the fish for a new one';
+    hintEl.textContent = (lockParam === '0')
+      ? 'preview mode (lock off) — tap for a new one'
+      : 'tap the fish for a new one';
   }
 }
-
+ 
 function newFish(){
   if(showingFairy) return;
   drawFish();
 }
-
+ 
 /* tap for a new fish */
 frame.addEventListener('click', newFish);
-
+ 
 /* re-check the clock the moment you return to the tab, so it flips to
    the fish right at 11:11 even if the phone was asleep */
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) render(); });
 window.addEventListener('focus', render);
-
+ 
 /* ======================= DATE + LOCATION ======================= */
 document.getElementById('date').textContent =
   new Date().toLocaleDateString(undefined, {weekday:'long', year:'numeric', month:'long', day:'numeric'});
-
+ 
 const locEl = document.getElementById('loc');
-
+ 
 // full state name -> abbreviation (fallback when no ISO code is returned)
 const US_STATES = {Alabama:'AL',Alaska:'AK',Arizona:'AZ',Arkansas:'AR',California:'CA',
 Colorado:'CO',Connecticut:'CT',Delaware:'DE','District of Columbia':'DC',Florida:'FL',
@@ -648,14 +650,14 @@ Minnesota:'MN',Mississippi:'MS',Missouri:'MO',Montana:'MT',Nebraska:'NE',Nevada:
 'North Dakota':'ND',Ohio:'OH',Oklahoma:'OK',Oregon:'OR',Pennsylvania:'PA','Rhode Island':'RI',
 'South Carolina':'SC','South Dakota':'SD',Tennessee:'TN',Texas:'TX',Utah:'UT',Vermont:'VT',
 Virginia:'VA',Washington:'WA','West Virginia':'WV',Wisconsin:'WI',Wyoming:'WY'};
-
+ 
 // turn "US-CA" or "California" into "CA"
 function abbr(code, name){
   if(code){ const last = String(code).split('-').pop(); if(/^[A-Za-z]{2}$/.test(last)) return last.toUpperCase(); }
   if(name && US_STATES[name]) return US_STATES[name];
   return name || '';
 }
-
+ 
 // If there's no city/town, use the STATE alone — never the time-zone city.
 function formatPlace(city, state, country){
   if(city && state) return `${city}, ${state}`;
@@ -664,7 +666,7 @@ function formatPlace(city, state, country){
   if(country) return country;
   return '';
 }
-
+ 
 // GPS -> a town-level place. OpenStreetMap first (best for small towns like Ross),
 // BigDataCloud as backup. State is shown abbreviated.
 async function reverseGeocode(lat, lon){
@@ -686,7 +688,7 @@ async function reverseGeocode(lat, lon){
   }catch{}
   return '';
 }
-
+ 
 // No GPS -> approximate from IP (city if offered, otherwise state).
 async function ipPlace(){
   try{
@@ -695,7 +697,7 @@ async function ipPlace(){
     return formatPlace(j.city, abbr(j.region_code, j.region), j.country_name);
   }catch{ return ''; }
 }
-
+ 
 function setLocation(){
   if(!navigator.geolocation){ ipPlace().then(t=> locEl.textContent = t); return; }
   navigator.geolocation.getCurrentPosition(
@@ -709,7 +711,7 @@ function setLocation(){
   );
 }
 setLocation();
-
+ 
 /* ======================= LIVE TICK ======================= */
 render();
 setInterval(()=>{
@@ -720,3 +722,4 @@ setInterval(()=>{
 </script>
 </body>
 </html>
+ 
